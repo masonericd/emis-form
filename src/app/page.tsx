@@ -9,9 +9,14 @@ import { Label } from "@/components/ui/label";
 import { toast } from "react-hot-toast";
 
 const supabase = createClient(
-  'https://uhrbaremzwtqyntjobht.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVocmJhcmVtend0cXludGpvYmh0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3MjQ3MzIsImV4cCI6MjA2NTMwMDczMn0.XgymyQK40JrRBDPJfbGFgK9EkQrvuntYUfOUnpZMeyc'
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
+
+interface Location {
+  county: string;
+  district: string;
+}
 
 export default function SchoolRegistrationForm() {
   const [formData, setFormData] = useState({
@@ -28,12 +33,12 @@ export default function SchoolRegistrationForm() {
     longitude: ''
   });
 
-  const [locations, setLocations] = useState([]);
+  const [locations, setLocations] = useState<Location[]>([]);
 
   useEffect(() => {
     const fetchLocations = async () => {
-      const { data, error } = await supabase.from('locations').select();
-      if (!error) setLocations(data);
+      const { data, error } = await supabase.from('locations').select('*');
+      if (!error && data) setLocations(data as Location[]);
     };
     fetchLocations();
   }, []);
@@ -43,14 +48,14 @@ export default function SchoolRegistrationForm() {
       navigator.geolocation.getCurrentPosition((position) => {
         setFormData(prev => ({
           ...prev,
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude
+          latitude: position.coords.latitude.toString(),
+          longitude: position.coords.longitude.toString()
         }));
       });
     }
   }, []);
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -64,7 +69,7 @@ export default function SchoolRegistrationForm() {
     ? locations.filter(l => l.county === formData.county).map(l => l.district)
     : [];
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const { error } = await supabase.from('schools').insert([formData]);
     if (error) {
