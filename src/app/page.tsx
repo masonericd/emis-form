@@ -30,9 +30,11 @@ export default function SchoolRegistrationForm() {
     phone: '',
     email: '',
     latitude: '',
-    longitude: ''
+    longitude: '',
+    photo_url: ''
   });
 
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [locations, setLocations] = useState<Location[]>([]);
 
   useEffect(() => {
@@ -66,6 +68,12 @@ export default function SchoolRegistrationForm() {
     }));
   };
 
+  const handlePhotoChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setPhotoFile(e.target.files[0]);
+    }
+  };
+
   const counties = [...new Set(locations.map(l => l.county))];
   const districts = formData.county
     ? locations.filter(l => l.county === formData.county).map(l => l.district)
@@ -73,15 +81,30 @@ export default function SchoolRegistrationForm() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const { error } = await supabase.from('schools').insert([formData]);
+
+    let uploadedPhotoUrl = '';
+    if (photoFile) {
+      const fileExt = photoFile.name.split('.').pop();
+      const fileName = `${formData.name.replace(/\s+/g, '_').toLowerCase()}_${Date.now()}.${fileExt}`;
+      const { data, error: uploadError } = await supabase.storage.from('school-photos').upload(fileName, photoFile);
+      if (uploadError) {
+        toast.error("Photo upload failed: " + uploadError.message);
+        return;
+      }
+      const { data: publicUrlData } = supabase.storage.from('school-photos').getPublicUrl(fileName);
+      uploadedPhotoUrl = publicUrlData.publicUrl;
+    }
+
+    const { error } = await supabase.from('schools').insert([{ ...formData, photo_url: uploadedPhotoUrl }]);
     if (error) {
       toast.error("Failed to register school: " + error.message);
     } else {
       toast.success("School registered successfully!");
       setFormData({
         name: '', emis_code: '', county: '', district: '', village: '',
-        is_boarding: false, is_urban: false, phone: '', email: '', latitude: '', longitude: ''
+        is_boarding: false, is_urban: false, phone: '', email: '', latitude: '', longitude: '', photo_url: ''
       });
+      setPhotoFile(null);
     }
   };
 
@@ -127,6 +150,10 @@ export default function SchoolRegistrationForm() {
             <div>
               <Label>Email</Label>
               <Input name="email" value={formData.email} onChange={handleChange} type="email" />
+            </div>
+            <div>
+              <Label>School Photo (capture or upload)</Label>
+              <Input type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} />
             </div>
             <div className="flex flex-wrap items-center gap-4">
               <label className="flex items-center gap-2">
