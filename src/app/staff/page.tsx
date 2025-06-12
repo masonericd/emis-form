@@ -15,11 +15,11 @@ const supabase = createClient(
 
 export default function StaffRegistrationForm() {
   const [formData, setFormData] = useState({
-    full_name: '',
-    position: '',
+    surname: '',
+    given_name: '',
+    sex: '',
     phone: '',
     email: '',
-    sex: '',
     school_emis_code: ''
   });
 
@@ -30,12 +30,14 @@ export default function StaffRegistrationForm() {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    console.log("Submitting staff:", formData);
     const { error } = await supabase.from('staff').insert([formData]);
     if (error) {
+      console.error("Insert error:", error.message);
       toast.error("Failed to register staff: " + error.message);
     } else {
       toast.success("Staff registered successfully!");
-      setFormData({ full_name: '', position: '', phone: '', email: '', sex: '', school_emis_code: '' });
+      setFormData({ surname: '', given_name: '', sex: '', phone: '', email: '', school_emis_code: '' });
     }
   };
 
@@ -45,12 +47,12 @@ export default function StaffRegistrationForm() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label>Full Name</Label>
-              <Input name="full_name" value={formData.full_name} onChange={handleChange} required />
+              <Label>Surname</Label>
+              <Input name="surname" value={formData.surname} onChange={handleChange} required />
             </div>
             <div>
-              <Label>Position</Label>
-              <Input name="position" value={formData.position} onChange={handleChange} required />
+              <Label>Given Name</Label>
+              <Input name="given_name" value={formData.given_name} onChange={handleChange} required />
             </div>
             <div>
               <Label>Sex</Label>
